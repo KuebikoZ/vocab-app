@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F7F5F0">
+<title>生词本 · 查词与背词</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#F7F5F0;--card:#FFFFFF;--ink:#1A1A17;--ink2:#6B6862;--ink3:#A8A49B;
+  --line:#E8E4DB;--brand:#14524A;--brand2:#E3EFEC;
+  --ok:#2E7D5B;--okbg:#EAF5F0;--err:#C0503E;--errbg:#FBEDEA;
+}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Helvetica Neue",sans-serif;
+  background:#E9E5DD;color:var(--ink);
+  display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  width:100%;max-width:430px;height:100vh;height:100dvh;background:var(--bg);
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+@media(min-width:480px){
+  .app{height:min(880px,calc(100vh - 40px));border-radius:26px;box-shadow:0 18px 50px rgba(40,35,25,.13)}
+}
+.hd{padding:calc(env(safe-area-inset-top) + 22px) 22px 10px;flex:0 0 auto}
+.hd h1{margin:0;font-size:24px;font-weight:600;letter-spacing:-.3px}
+.hd p{margin:5px 0 0;font-size:12.5px;color:var(--ink3);line-height:1.5}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 20px 28px;-webkit-overflow-scrolling:touch}
+.view{display:none;animation:fade .22s ease}
+.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.search{display:flex;align-items:center;gap:9px;background:var(--card);border:1px solid var(--line);border-radius:100px;padding:0 16px;height:50px;margin-bottom:18px}
+.search svg{flex:0 0 auto;color:var(--ink3)}
+.search input{flex:1;border:0;outline:0;background:transparent;font-size:16px;color:var(--ink);font-family:inherit;min-width:0}
+.search input::placeholder{color:var(--ink3)}
+.clr{border:0;background:var(--line);color:var(--ink2);width:20px;height:20px;border-radius:50%;font-size:13px;line-height:1;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer}
+.clr.on{display:flex}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 20px}
+.wrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.word{font-size:29px;font-weight:600;letter-spacing:-.5px;line-height:1.15;word-break:break-word}
+.ph{font-size:13px;color:var(--ink3);margin-top:7px;font-family:"SF Mono",Menlo,monospace}
+.spk{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--brand);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.spk:active{transform:scale(.93);background:var(--brand2)}
+.defs{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}
+.dline{display:flex;gap:9px;margin-bottom:11px;font-size:15px;line-height:1.55}
+.dline:last-child{margin-bottom:0}
+.pos{flex:0 0 auto;font-size:11.5px;color:var(--brand);background:var(--brand2);padding:2px 7px;border-radius:5px;height:19px;line-height:15px;margin-top:2px;font-weight:500}
+.ex{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.ex p{margin:0;font-size:13.5px;line-height:1.65;color:var(--ink2);font-style:italic}
+.ex span{display:block;margin-top:6px;font-size:12.5px;color:var(--ink3);font-style:normal;line-height:1.6}
+.tag-online{display:inline-block;font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:8px;vertical-align:3px;font-weight:400}
+
+.btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;transition:.15s}
+.btn:active{transform:scale(.985)}
+.btn.pri{background:var(--brand);color:#fff}
+.btn.pri:active{background:#0F403A}
+.btn.ghost{background:var(--card);color:var(--ink2);border:1px solid var(--line)}
+.btn.done{background:var(--brand2);color:var(--brand);cursor:default}
+.btn.done:active{transform:none}
+.btn-wrap{margin-top:18px}
+.btn-wrap.sticky{position:sticky;bottom:-2px;z-index:5;background:var(--bg);padding:10px 0 2px;margin-top:14px}
+
+.sec-t{font-size:12.5px;color:var(--ink3);margin:22px 0 10px;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--card);border:1px solid var(--line);border-radius:100px;padding:8px 14px;font-size:13.5px;color:var(--ink2);cursor:pointer;font-family:inherit}
+.chip:active{background:var(--brand2);border-color:var(--brand2);color:var(--brand)}
+
+.empty{text-align:center;padding:44px 16px}
+.empty svg{color:var(--line);margin-bottom:14px}
+.empty h3{margin:0 0 6px;font-size:15px;font-weight:500;color:var(--ink2)}
+.empty p{margin:0;font-size:13px;color:var(--ink3);line-height:1.6}
+
+.seg{display:flex;background:#EFEBE2;border-radius:12px;padding:4px;margin-bottom:18px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:10px 4px;border-radius:9px;font-size:13.5px;color:var(--ink2);font-family:inherit;cursor:pointer;transition:.15s;font-weight:400}
+.seg button.on{background:var(--card);color:var(--ink);font-weight:500;box-shadow:0 1px 4px rgba(60,50,35,.09)}
+
+.pbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.bar{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:2px;transition:width .35s ease}
+.pnum{font-size:12px;color:var(--ink3);font-family:"SF Mono",Menlo,monospace;flex:0 0 auto}
+
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 20px;min-height:200px}
+.qlabel{font-size:12px;color:var(--ink3);margin-bottom:12px}
+.qprompt{font-size:23px;font-weight:600;line-height:1.45;letter-spacing:-.2px}
+.qpos{display:inline-block;font-size:11.5px;color:var(--brand);background:var(--brand2);padding:2px 7px;border-radius:5px;margin-bottom:3px;font-weight:500}
+.qhint{font-size:12.5px;color:var(--ink3);margin-top:12px;font-family:"SF Mono",Menlo,monospace}
+
+.spell{width:100%;text-align:center;font-size:24px;letter-spacing:1.5px;border:0;border-bottom:2px solid var(--line);padding:14px 0 10px;outline:0;background:transparent;font-family:inherit;color:var(--ink);margin-top:22px;transition:border-color .2s}
+.spell:focus{border-color:var(--brand)}
+.spell.ok{border-color:var(--ok);color:var(--ok)}
+.spell.no{border-color:var(--err);color:var(--err)}
+
+.opt{width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 16px;font-size:14.5px;margin-bottom:9px;color:var(--ink);font-family:inherit;cursor:pointer;transition:.15s;line-height:1.5;display:block}
+.opt:active{transform:scale(.99)}
+.opt.correct{background:var(--okbg);border-color:var(--ok);color:#1D5C43}
+.opt.wrong{background:var(--errbg);border-color:var(--err);color:#9E3F30}
+.opt.dim{opacity:.45}
+
+.fb{margin-top:16px;padding:13px 15px;border-radius:12px;font-size:13.5px;line-height:1.6;display:none}
+.fb.on{display:block}
+.fb.ok{background:var(--okbg);color:#1D5C43}
+.fb.no{background:var(--errbg);color:#9E3F30}
+.fb b{font-weight:600}
+
+.result{text-align:center;padding:14px 0 6px}
+.ring{width:150px;height:150px;margin:0 auto 6px}
+.ring text{font-family:-apple-system,sans-serif;font-weight:600}
+.result h3{margin:12px 0 4px;font-size:17px;font-weight:500}
+.result p{margin:0;font-size:13px;color:var(--ink3)}
+.wrongbox{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:6px 16px}
+.wrongbox .wt{font-size:12px;color:var(--ink3);padding:12px 0 8px;border-bottom:1px solid var(--line)}
+.witem{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.witem:last-child{border-bottom:0}
+.witem em{font-style:normal;font-weight:500;color:var(--ink)}
+.witem span{color:var(--ink3);font-size:12.5px;text-align:right;flex:1;min-width:0}
+
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:9px;transition:.15s}
+.row:active{background:#FCFBF8}
+.rinfo{flex:1;min-width:0}
+.rw{font-size:15.5px;font-weight:500;letter-spacing:-.1px;display:flex;align-items:center;gap:7px}
+.rp{font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-weight:400}
+.rd{font-size:12.5px;color:var(--ink3);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.del{flex:0 0 auto;width:30px;height:30px;border:0;background:transparent;color:var(--ink3);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.del:active{background:var(--errbg);color:var(--err)}
+
+.listhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.listhd .cnt{font-size:12.5px;color:var(--ink3)}
+.listhd .cnt b{color:var(--brand);font-weight:600;font-size:14px}
+.txtbtn{border:0;background:transparent;color:var(--ink3);font-size:12.5px;font-family:inherit;cursor:pointer;padding:4px}
+
+.tabbar{flex:0 0 auto;display:flex;background:rgba(247,245,240,.94);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:7px 6px calc(env(safe-area-inset-bottom) + 7px)}
+.tab{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--ink3);font-family:inherit;font-size:10.5px;cursor:pointer;transition:color .15s;position:relative}
+.tab svg{transition:transform .2s}
+.tab.on{color:var(--brand)}
+.tab.on svg{transform:translateY(-1px)}
+.tab .dot{position:absolute;bottom:0;width:4px;height:4px;border-radius:50%;background:var(--brand);opacity:0;transition:.2s}
+.tab.on .dot{opacity:1}
+
+.toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,14px);background:#25231F;color:#fff;padding:11px 20px;border-radius:100px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:60;white-space:nowrap;max-width:88%;overflow:hidden;text-overflow:ellipsis}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.spin{width:26px;height:26px;border:2.5px solid var(--line);border-top-color:var(--brand);border-radius:50%;margin:36px auto;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media(max-height:720px){
+  .hd{padding:calc(env(safe-area-inset-top) + 13px) 20px 6px}
+  .hd h1{font-size:20px}
+  .hd p{display:none}
+  .main{padding-bottom:16px}
+  .seg{margin-bottom:12px}
+  .qcard{padding:18px;min-height:0}
+  .qprompt{font-size:20px}
+  .spell{margin-top:14px;font-size:21px;padding:10px 0 8px}
+  .qhint{margin-top:9px}
+  .card{padding:18px}
+  .defs{margin-top:14px;padding-top:13px}
+  .btn-wrap{margin-top:12px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hd">
+    <h1 id="hdTitle">查词</h1>
+    <p id="hdSub">输入一个单词，看释义，随手存进自己的词表</p>
+  </header>
+
+  <main class="main">
+    <section class="view on" id="v-search">
+      <div class="search">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+        <input id="inq" type="text" placeholder="输入英文单词" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="clr" id="clr" aria-label="清空">×</button>
+      </div>
+      <div id="sres"></div>
+    </section>
+
+    <section class="view" id="v-quiz">
+      <div class="seg">
+        <button class="on" data-mode="spell">拼写题</button>
+        <button data-mode="choice">中文释义选择题</button>
+      </div>
+      <div id="qres"></div>
+    </section>
+
+    <section class="view" id="v-list">
+      <div id="lres"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab on" data-tab="search">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+      <span>查词</span><i class="dot"></i>
+    </button>
+    <button class="tab" data-tab="quiz">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="13.5" height="12" rx="2.6"/><path d="M7.5 4.5h11A2.5 2.5 0 0 1 21 7v9.5"/></svg>
+      <span>背词</span><i class="dot"></i>
+    </button>
+    <button class="tab" data-tab="list">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.2" cy="6.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.2" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.2" cy="17.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+      <span>我的词表</span><i class="dot"></i>
+    </button>
+  </nav>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const W = [
+["analysis","/əˈnæləsɪs/","n.","分析；解析","The analysis shows a strong link between income and health.","该分析显示收入与健康之间存在强关联。"],
+["hypothesis","/haɪˈpɒθəsɪs/","n.","假设；假说","The data did not support the original hypothesis.","数据并不支持最初的假设。"],
+["significant","/sɪɡˈnɪfɪkənt/","adj.","显著的；重要的","The difference was statistically significant.","这一差异在统计上显著。"],
+["correlation","/ˌkɒrəˈleɪʃn/","n.","相关性；关联","There is a clear correlation between sleep and mood.","睡眠与情绪之间存在明显相关性。"],
+["methodology","/ˌmeθəˈdɒlədʒi/","n.","方法论；研究方法","The study's methodology has been questioned.","该研究的方法论受到了质疑。"],
+["evidence","/ˈevɪdəns/","n.","证据","There is little evidence to support the claim.","几乎没有证据支持这一说法。"],
+["implication","/ˌɪmplɪˈkeɪʃn/","n.","含义；可能的影响","The findings have major policy implications.","这些发现对政策有重大影响。"],
+["bias","/ˈbaɪəs/","n.","偏差；偏见","Selection bias may explain the result.","选择偏倚可能解释这一结果。"],
+["cohort","/ˈkəʊhɔːt/","n.","队列；同期群体","The cohort was followed for ten years.","该队列被随访了十年。"],
+["prevalence","/ˈprevələns/","n.","患病率；流行程度","The prevalence of depression rose sharply.","抑郁的患病率大幅上升。"],
+["intervention","/ˌɪntəˈvenʃn/","n.","干预；介入","The intervention lasted twelve weeks.","该干预持续了十二周。"],
+["assess","/əˈses/","v.","评估；估量","We need to assess the risk first.","我们需要先评估风险。"],
+["indicate","/ˈɪndɪkeɪt/","v.","表明；指示","The results indicate a gradual decline.","结果表明存在逐渐下降的趋势。"],
+["derive","/dɪˈraɪv/","v.","得出；源自","The estimate was derived from survey data.","该估计值由调查数据得出。"],
+["substantial","/səbˈstænʃl/","adj.","大量的；实质性的","A substantial share of users never returned.","相当大比例的用户再也没有回来。"],
+["comprehensive","/ˌkɒmprɪˈhensɪv/","adj.","全面的；综合的","She gave a comprehensive review of the field.","她对该领域做了全面综述。"],
+["empirical","/ɪmˈpɪrɪkl/","adj.","实证的；经验主义的","Empirical evidence is still limited.","实证证据仍然有限。"],
+["robust","/rəʊˈbʌst/","adj.","稳健的；强健的","The finding is robust across subgroups.","该发现在各亚组中都很稳健。"],
+["validity","/vəˈlɪdəti/","n.","有效性；效度","The scale's validity has not been tested.","该量表的有效性尚未被检验。"],
+["mechanism","/ˈmekənɪzəm/","n.","机制；机理","The underlying mechanism remains unclear.","其潜在机制仍不清楚。"],
+["threshold","/ˈθreʃhəʊld/","n.","阈值；门槛","The threshold was set at five percent.","阈值设定为百分之五。"],
+["proportion","/prəˈpɔːʃn/","n.","比例；部分","A large proportion of patients dropped out.","很大比例的患者退出了研究。"],
+["sufficient","/səˈfɪʃnt/","adj.","充足的；足够的","The sample was not sufficient for subgroup analysis.","样本量不足以做亚组分析。"],
+["subsequent","/ˈsʌbsɪkwənt/","adj.","随后的；接下来的","Subsequent studies reached the same conclusion.","后续研究得出了相同结论。"],
+["underlying","/ˌʌndəˈlaɪɪŋ/","adj.","潜在的；根本的","We must address the underlying cause.","我们必须解决根本原因。"],
+["abandon","/əˈbændən/","v.","放弃；抛弃","They abandoned the plan after one year.","一年后他们放弃了这个计划。"],
+["adequate","/ˈædɪkwət/","adj.","足够的；适当的","The sample size was barely adequate.","样本量勉强够用。"],
+["ambiguous","/æmˈbɪɡjuəs/","adj.","模糊的；有歧义的","The wording of the question was ambiguous.","问题的措辞有歧义。"],
+["anticipate","/ænˈtɪsɪpeɪt/","v.","预期；预料","We did not anticipate this reaction.","我们没有预料到这种反应。"],
+["apparent","/əˈpærənt/","adj.","明显的；表面上的","It soon became apparent that the plan would fail.","很快就明显看出该计划会失败。"],
+["attribute","/əˈtrɪbjuːt/","v.","把…归因于","They attribute the rise to better screening.","他们把这一上升归因于更好的筛查。"],
+["coherent","/kəʊˈhɪərənt/","adj.","连贯的；条理清楚的","The argument is coherent but incomplete.","论证连贯，但不完整。"],
+["compelling","/kəmˈpelɪŋ/","adj.","有说服力的；引人注目的","The evidence is compelling.","证据很有说服力。"],
+["controversial","/ˌkɒntrəˈvɜːʃl/","adj.","有争议的","The policy remains highly controversial.","该政策仍然极具争议。"],
+["crucial","/ˈkruːʃl/","adj.","关键的；至关重要的","Timing is crucial in this process.","在这一过程中时机至关重要。"],
+["diminish","/dɪˈmɪnɪʃ/","v.","减少；削弱","The effect diminished over time.","效应随时间减弱。"],
+["distinguish","/dɪˈstɪŋɡwɪʃ/","v.","区分；辨别","It is hard to distinguish cause from correlation.","很难区分因果与相关。"],
+["eliminate","/ɪˈlɪmɪneɪt/","v.","消除；排除","We cannot eliminate all sources of error.","我们无法消除所有误差来源。"],
+["emerge","/ɪˈmɜːdʒ/","v.","出现；浮现","A clear pattern emerged from the data.","数据中浮现出清晰的模式。"],
+["emphasize","/ˈemfəsaɪz/","v.","强调；着重","The authors emphasize the role of context.","作者强调了情境的作用。"],
+["enhance","/ɪnˈhɑːns/","v.","增强；提升","Training can enhance recall.","训练可以增强记忆提取。"],
+["feasible","/ˈfiːzəbl/","adj.","可行的；行得通的","The option is technically feasible.","该方案在技术上可行。"],
+["fundamental","/ˌfʌndəˈmentl/","adj.","根本的；基础的","This raises a fundamental question.","这引出一个根本性问题。"],
+["illustrate","/ˈɪləstreɪt/","v.","说明；阐明","The case illustrates the limits of the model.","该案例说明了模型的局限。"],
+["inevitable","/ɪnˈevɪtəbl/","adj.","不可避免的","Some attrition is inevitable in long studies.","长期研究中一定会有失访。"],
+["inhibit","/ɪnˈhɪbɪt/","v.","抑制；阻碍","High cost inhibits adoption.","高成本抑制了采用。"],
+["integrate","/ˈɪntɪɡreɪt/","v.","整合；使结合","The two datasets were integrated.","两个数据集被整合在一起。"],
+["justify","/ˈdʒʌstɪfaɪ/","v.","证明…正当；为…辩护","The cost is hard to justify.","这笔成本很难说得过去。"],
+["modify","/ˈmɒdɪfaɪ/","v.","修改；调整","We modified the questionnaire slightly.","我们对问卷做了小幅修改。"],
+["neglect","/nɪˈɡlekt/","v.","忽视；疏忽","Earlier work neglected this factor.","早期研究忽视了这一因素。"],
+["notion","/ˈnəʊʃn/","n.","概念；观念","The notion of normal is culturally shaped.","正常这一概念受文化塑造。"],
+["perceive","/pəˈsiːv/","v.","感知；认为","Users perceive the delay as a failure.","用户把延迟视为失败。"],
+["persist","/pəˈsɪst/","v.","持续；坚持","The gap persisted after adjustment.","调整后差距依然存在。"],
+["plausible","/ˈplɔːzəbl/","adj.","貌似合理的；说得通的","That is a plausible explanation.","那是一个说得通的解释。"],
+["precise","/prɪˈsaɪs/","adj.","精确的；准确的","We need a more precise definition.","我们需要更精确的定义。"],
+["retain","/rɪˈteɪn/","v.","保留；记住","Older users retained less information.","年长用户记住的信息更少。"],
+["reveal","/rɪˈviːl/","v.","揭示；显露","The survey revealed a sharp divide.","调查揭示出明显分歧。"],
+["sustain","/səˈsteɪn/","v.","维持；支撑","It is hard to sustain attention for an hour.","很难维持一小时的注意力。"],
+["transform","/trænsˈfɔːm/","v.","转变；改变","Digital tools transformed the workflow.","数字工具改变了工作流程。"],
+["vulnerable","/ˈvʌlnərəbl/","adj.","脆弱的；易受影响的","Rural patients are especially vulnerable.","农村患者尤其脆弱。"]
+].map(a=>({w:a[0],ph:a[1],pos:a[2],def:a[3],ex:a[4],cn:a[5]}));
+
+const LS = 'vocab_app_v1';
+let S = {list:[], recent:[], tab:'search', mode:'spell', quiz:null};
+try{ const raw = JSON.parse(localStorage.getItem(LS)||'{}'); S.list = raw.list||[]; S.recent = raw.recent||[]; }catch(e){}
+function persist(){ try{ localStorage.setItem(LS, JSON.stringify({list:S.list, recent:S.recent})); }catch(e){} }
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = a => { const b = a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; };
+const norm = s => String(s||'').trim().toLowerCase();
+
+let toastT;
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 1900);
+}
+function speak(text){
+  if(!('speechSynthesis' in window)){ toast('当前浏览器不支持朗读'); return; }
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = .9; speechSynthesis.speak(u);
+  }catch(e){ toast('朗读失败'); }
+}
+function inList(w){ return S.list.some(x=>x.w===w); }
+
+function go(tab){
+  S.tab = tab;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  $('#v-'+tab).classList.add('on');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
+  const hd = {
+    search:['查词','输入一个单词，看释义，随手存进自己的词表'],
+    quiz:['背词','从你自己的词表里出题，答错立即纠'],
+    list:['我的词表','' + S.list.length + ' 个词，都是你真正遇到过的']
+  }[tab];
+  $('#hdTitle').textContent = hd[0];
+  $('#hdSub').textContent = hd[1];
+  $('.main').scrollTop = 0;
+  if(tab==='search') renderIdle();
+  if(tab==='list') renderList();
+  if(tab==='quiz') renderQuizEntry();
+}
+
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  S.mode = b.dataset.mode;
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on', x.dataset.mode===S.mode));
+  renderQuizEntry();
+}));
+
+let deb;
+$('#inq').addEventListener('input', e=>{
+  const q = e.target.value;
+  $('#clr').classList.toggle('on', q.length>0);
+  clearTimeout(deb);
+  deb = setTimeout(()=>handleQuery(q), 220);
+});
+$('#clr').addEventListener('click', ()=>{ $('#inq').value=''; $('#clr').classList.remove('on'); handleQuery(''); $('#inq').focus(); });
+
+function handleQuery(raw){
+  const q = norm(raw);
+  if(!q){ renderIdle(); return; }
+  const exact = W.find(x=>x.w===q);
+  if(exact){ renderWord(exact); return; }
+  const partial = W.filter(x=>x.w.startsWith(q) || x.w.includes(q)).slice(0,7);
+  if(partial.length){ renderSuggest(partial, q); return; }
+  onlineLookup(q);
+}
+
+function renderIdle(){
+  const rec = S.recent.slice(0,8);
+  const pick = shuffle(W).slice(0,8);
+  let html = '';
+  if(rec.length){
+    html += '<div class="sec-t">最近查过</div><div class="chips">' +
+      rec.map(w=>'<button class="chip" data-w="'+esc(w)+'">'+esc(w)+'</button>').join('') + '</div>';
+  }
+  html += '<div class="sec-t">'+(rec.length?'换几个试试':'试试这些词')+'</div><div class="chips">' +
+    pick.map(x=>'<button class="chip" data-w="'+esc(x.w)+'">'+esc(x.w)+'</button>').join('') + '</div>';
+  $('#sres').innerHTML = html;
+  bindChips();
+}
+function bindChips(){
+  document.querySelectorAll('#sres .chip').forEach(c=>c.addEventListener('click',()=>{
+    $('#inq').value = c.dataset.w; $('#clr').classList.add('on');
+    handleQuery(c.dataset.w);
+  }));
+}
+
+function renderSuggest(items, q){
+  $('#sres').innerHTML = '<div class="sec-t">没有“'+esc(q)+'”这个词条，是想查下面某个吗</div><div class="chips">' +
+    items.map(x=>'<button class="chip" data-w="'+esc(x.w)+'">'+esc(x.w)+'</button>').join('') + '</div>';
+  bindChips();
+}
+
+function renderWord(x){
+  if(!S.recent.includes(x.w)){ S.recent.unshift(x.w); S.recent = S.recent.slice(0,12); persist(); }
+  const has = inList(x.w);
+  const online = x.online ? '<span class="tag-online">英文释义</span>' : '';
+  const defs = x.multi
+    ? x.multi.map(m=>'<div class="dline"><span class="pos">'+esc(m.pos)+'</span><span>'+esc(m.def)+'</span></div>').join('')
+    : '<div class="dline"><span class="pos">'+esc(x.pos)+'</span><span>'+esc(x.def)+'</span></div>';
+  $('#sres').innerHTML =
+    '<div class="card">' +
+      '<div class="wrow"><div><div class="word">'+esc(x.w)+online+'</div>' +
+        (x.ph?'<div class="ph">'+esc(x.ph)+'</div>':'') + '</div>' +
+        '<button class="spk" id="spk" aria-label="朗读"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.2v5.6h3.4L13 20V4L7.4 9.2H4Z"/><path d="M16.4 8.6a4.8 4.8 0 0 1 0 6.8"/><path d="M18.8 6.2a8 8 0 0 1 0 11.6"/></svg></button>' +
+      '</div>' +
+      '<div class="defs">' + defs + '</div>' +
+      (x.ex?'<div class="ex"><p>'+esc(x.ex)+'</p>'+(x.cn?'<span>'+esc(x.cn)+'</span>':'')+'</div>':'') +
+      '<div class="btn-wrap"><button class="btn '+(has?'done':'pri')+'" id="addbtn" '+(has?'disabled':'')+'>'+(has?'已在我的词表':'加入词表')+'</button></div>' +
+    '</div>';
+  $('#spk').addEventListener('click', ()=>speak(x.w));
+  const ab = $('#addbtn');
+  if(!has) ab.addEventListener('click', ()=>{
+    S.list.unshift({w:x.w, ph:x.ph||'', pos:x.pos||'', def:x.def||'', ex:x.ex||'', cn:x.cn||'', online:!!x.online, multi:x.multi||null});
+    persist();
+    ab.className = 'btn done'; ab.textContent = '已在我的词表'; ab.disabled = true;
+    $('#hdSub').textContent = '输入一个单词，看释义，随手存进自己的词表';
+    toast('已加入词表，共 ' + S.list.length + ' 个词');
+  });
+}
+
+async function onlineLookup(q){
+  $('#sres').innerHTML = '<div class="spin"></div>';
+  try{
+    const r = await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(q));
+    if(!r.ok) throw new Error('404');
+    const data = await r.json();
+    const e0 = data[0];
+    let ph = e0.phonetic || '';
+    if(!ph && e0.phonetics){ const p = e0.phonetics.find(p=>p.text); if(p) ph = p.text; }
+    const multi = [];
+    (e0.meanings||[]).forEach(m=>{
+      (m.definitions||[]).slice(0,1).forEach(d=>{
+        multi.push({pos:m.partOfSpeech||'', def:d.definition||''});
+      });
+    });
+    if(!multi.length) throw new Error('empty');
+    let ex = '', cn = '';
+    (e0.meanings||[]).forEach(m=>(m.definitions||[]).forEach(d=>{ if(!ex && d.example) ex = d.example; }));
+    renderWord({w:e0.word||q, ph:ph, pos:multi[0].pos, def:multi[0].def, ex:ex, cn:cn, online:true, multi:multi.slice(0,3)});
+  }catch(err){
+    $('#sres').innerHTML = '<div class="empty">' +
+      '<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>' +
+      '<h3>没查到 “'+esc(q)+'”</h3><p>本地词库和在线词典都没有这个词<br>检查一下拼写，或换个词试试</p></div>';
+  }
+}
+
+function renderList(){
+  if(!S.list.length){
+    $('#lres').innerHTML = '<div class="empty">' +
+      '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="14" height="15" rx="2.5"/><path d="M7 2.5h11A2.5 2.5 0 0 1 20.5 5v13"/></svg>' +
+      '<h3>词表还是空的</h3><p>去查一个你最近读到的词<br>存进来，背词时会用到它</p>' +
+      '<div style="margin-top:20px"><button class="btn pri" id="toSearch">去查词</button></div></div>';
+    $('#toSearch').addEventListener('click', ()=>go('search'));
+    return;
+  }
+  const rows = S.list.map((x,i)=>
+    '<div class="row"><div class="rinfo">' +
+      '<div class="rw">'+esc(x.w)+(x.pos?'<span class="rp">'+esc(x.pos)+'</span>':'')+(x.online?'<span class="rp">英</span>':'')+'</div>' +
+      '<div class="rd">'+esc(x.def)+'</div>' +
+    '</div><button class="del" data-i="'+i+'" aria-label="移除"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>'
+  ).join('');
+  $('#lres').innerHTML =
+    '<div class="listhd"><div class="cnt">共 <b>'+S.list.length+'</b> 个词</div><button class="txtbtn" id="clrAll">清空</button></div>' + rows;
+  document.querySelectorAll('#lres .del').forEach(b=>b.addEventListener('click', ()=>{
+    const i = +b.dataset.i;
+    const removed = S.list[i];
+    S.list.splice(i,1); persist();
+    renderList();
+    $('#hdSub').textContent = S.list.length + ' 个词，都是你真正遇到过的';
+    toast('已移除 ' + removed.w);
+  }));
+  $('#clrAll').addEventListener('click', ()=>{
+    if(!S.list.length) return;
+    S.list = []; persist(); renderList();
+    $('#hdSub').textContent = '0 个词，都是你真正遇到过的';
+    toast('词表已清空');
+  });
+}
+
+function poolForQuiz(){
+  return S.list.filter(x=>!x.online && x.def && x.w);
+}
+
+function renderQuizEntry(){
+  const pool = poolForQuiz();
+  if(!pool.length){
+    $('#qres').innerHTML = '<div class="empty">' +
+      '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="13.5" height="12" rx="2.6"/><path d="M7.5 4.5h11A2.5 2.5 0 0 1 21 7v9.5"/></svg>' +
+      '<h3>还没有可以出题的词</h3><p>背词只用你自己存进来的词<br>先去查词页存几个</p>' +
+      '<div style="margin-top:20px"><button class="btn pri" id="toSearch2">去查词</button></div></div>';
+    $('#toSearch2').addEventListener('click', ()=>go('search'));
+    return;
+  }
+  const n = Math.min(10, pool.length);
+  $('#qres').innerHTML =
+    '<div class="card" style="text-align:center;padding:32px 20px">' +
+      '<div style="font-size:12px;color:var(--ink3);margin-bottom:10px">'+(S.mode==='spell'?'拼写题':'中文释义选择题')+'</div>' +
+      '<div style="font-size:19px;font-weight:600;line-height:1.5">本轮 '+n+' 题<br><span style="font-size:13px;color:var(--ink3);font-weight:400">从你的 '+pool.length+' 个词里抽</span></div>' +
+      '<div style="margin-top:26px"><button class="btn pri" id="start">开始</button></div>' +
+    '</div>';
+  $('#start').addEventListener('click', startQuiz);
+}
+
+function startQuiz(){
+  const pool = poolForQuiz();
+  S.quiz = {items: shuffle(pool).slice(0, Math.min(10, pool.length)), i:0, right:0, wrong:[], answered:false};
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const q = S.quiz;
+  if(q.i >= q.items.length){ renderResult(); return; }
+  $('.main').scrollTop = 0;
+  const it = q.items[q.i];
+  const pct = (q.i / q.items.length) * 100;
+  const head =
+    '<div class="pbar"><div class="bar"><i style="width:'+pct+'%"></i></div>' +
+    '<div class="pnum">'+(q.i+1)+' / '+q.items.length+'</div></div>';
+
+  if(S.mode === 'spell'){
+    const hintLen = it.w.length;
+    const first = it.w[0];
+    $('#qres').innerHTML = head +
+      '<div class="qcard">' +
+        '<div class="qlabel">看中文，拼出英文</div>' +
+        '<div class="qpos">'+esc(it.pos)+'</div>' +
+        '<div class="qprompt">'+esc(it.def)+'</div>' +
+        '<input class="spell" id="sp" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="输入英文单词">' +
+        '<div class="qhint">'+hintLen+' 个字母 · 首字母 '+esc(first)+'</div>' +
+      '</div>' +
+      '<div class="fb" id="fb"></div>' +
+      '<div class="btn-wrap sticky"><button class="btn pri" id="sub">确认</button></div>';
+    const sp = $('#sp');
+    setTimeout(()=>{ try{ sp.focus({preventScroll:true}); }catch(e){} }, 120);
+    sp.addEventListener('keydown', e=>{ if(e.key==='Enter') submitSpell(); });
+    $('#sub').addEventListener('click', submitSpell);
+  } else {
+    const others = shuffle(W.filter(x=>x.w!==it.w && x.def && x.def!==it.def)).slice(0,3);
+    const opts = shuffle([it, ...others]);
+    $('#qres').innerHTML = head +
+      '<div class="qcard" style="padding:24px 20px 18px">' +
+        '<div class="qlabel">选出正确的中文释义</div>' +
+        '<div class="qprompt" style="margin-bottom:20px">'+esc(it.w)+'</div>' +
+        (it.ph?'<div class="ph" style="margin:-14px 0 18px">'+esc(it.ph)+'</div>':'') +
+        opts.map((o,k)=>'<button class="opt" data-k="'+k+'" data-w="'+esc(o.w)+'">'+esc(o.def)+'</button>').join('') +
+      '</div>' +
+      '<div class="fb" id="fb"></div>' +
+      '<div class="btn-wrap sticky" id="nextwrap"></div>';
+    document.querySelectorAll('#qres .opt').forEach(b=>b.addEventListener('click', ()=>{
+      if(S.quiz.answered) return;
+      checkChoice(b.dataset.w, b);
+    }));
+  }
+}
+
+function submitSpell(){
+  const q = S.quiz;
+  if(q.answered) return;
+  const it = q.items[q.i];
+  const val = norm($('#sp').value);
+  if(!val){ toast('先写点什么'); return; }
+  q.answered = true;
+  const ok = val === norm(it.w);
+  const sp = $('#sp'); sp.classList.add(ok?'ok':'no'); sp.disabled = true;
+  const fb = $('#fb'); fb.classList.add('on', ok?'ok':'no');
+  if(ok){
+    q.right++;
+    fb.innerHTML = '<b>答对了</b>　'+esc(it.w)+'　'+esc(it.def);
+    setTimeout(()=>{ q.i++; q.answered=false; renderQuestion(); }, 700);
+  }else{
+    q.wrong.push(it);
+    fb.innerHTML = '<b>正确答案：'+esc(it.w)+'</b><br>你写的是 '+esc(val)+'　释义：'+esc(it.def);
+    $('#sub').textContent = '继续';
+    const nb = $('#sub').cloneNode(true);
+    $('#sub').replaceWith(nb);
+    nb.addEventListener('click', ()=>{ q.i++; q.answered=false; renderQuestion(); });
+  }
+  setTimeout(()=>{ const f=document.querySelector('#fb'); if(f) f.scrollIntoView({block:'center',behavior:'smooth'}); }, 80);
+}
+
+function checkChoice(chosen, btn){
+  const q = S.quiz;
+  if(q.answered) return;
+  const it = q.items[q.i];
+  q.answered = true;
+  const ok = chosen === it.w;
+  document.querySelectorAll('#qres .opt').forEach(b=>{
+    if(b.dataset.w === it.w) b.classList.add('correct');
+    else if(b === btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  const fb = $('#fb'); fb.classList.add('on', ok?'ok':'no');
+  if(ok){ q.right++; fb.innerHTML = '<b>答对了</b>　'+esc(it.w)+'　'+esc(it.def); }
+  else { q.wrong.push(it); fb.innerHTML = '<b>正确答案是 '+esc(it.def)+'</b>'; }
+  const nw = document.createElement('div');
+  nw.className = 'btn-wrap sticky';
+  nw.innerHTML = '<button class="btn pri" id="goNext">'+(ok?'继续':'下一题')+'</button>';
+  $('#nextwrap').replaceWith(nw);
+  nw.querySelector('#goNext').addEventListener('click', ()=>{ q.i++; q.answered=false; renderQuestion(); });
+  setTimeout(()=>{ const f=document.querySelector('#fb'); if(f) f.scrollIntoView({block:'center',behavior:'smooth'}); }, 80);
+  if(ok) setTimeout(()=>{ if(S.quiz && S.quiz.answered){ S.quiz.i++; S.quiz.answered=false; renderQuestion(); } }, 900);
+}
+
+function renderResult(){
+  const q = S.quiz;
+  $('.main').scrollTop = 0;
+  const total = q.items.length;
+  const rate = Math.round((q.right/total)*100);
+  const C = 2*Math.PI*52;
+  const off = C * (1 - rate/100);
+  const tip = rate>=90 ? '这批词基本拿下了' : rate>=60 ? '还有几个不稳，再刷一轮' : '这批词还很生，建议再刷一轮';
+  let wrongHtml = '';
+  if(q.wrong.length){
+    wrongHtml = '<div class="wrongbox"><div class="wt">这轮答错的 '+q.wrong.length+' 个词</div>' +
+      q.wrong.map(x=>'<div class="witem"><em>'+esc(x.w)+'</em><span>'+esc(x.def)+'</span></div>').join('') +
+      '</div>';
+  }
+  $('#qres').innerHTML =
+    '<div class="result">' +
+      '<svg class="ring" viewBox="0 0 120 120">' +
+        '<circle cx="60" cy="60" r="52" fill="none" stroke="#E8E4DB" stroke-width="9"/>' +
+        '<circle cx="60" cy="60" r="52" fill="none" stroke="#14524A" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+(q.right?off:C).toFixed(1)+'" transform="rotate(-90 60 60)"/>' +
+        '<text x="60" y="57" text-anchor="middle" font-size="26" fill="#1A1A17">'+rate+'%</text>' +
+        '<text x="60" y="76" text-anchor="middle" font-size="11" fill="#A8A49B">正确率</text>' +
+      '</svg>' +
+      '<h3>答对 '+q.right+' / '+total+'</h3>' +
+      '<p>'+tip+'</p>' +
+    '</div>' + wrongHtml +
+    '<div class="btn-wrap"><button class="btn pri" id="again">再来一轮</button></div>' +
+    '<div style="height:10px"></div>' +
+    '<button class="btn ghost" id="backEntry">换个题型</button>';
+  $('#again').addEventListener('click', startQuiz);
+  $('#backEntry').addEventListener('click', renderQuizEntry);
+}
+
+renderIdle();
+</script>
+</body>
+</html>
